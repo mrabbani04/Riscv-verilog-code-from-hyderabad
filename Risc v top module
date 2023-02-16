@@ -1,86 +1,42 @@
-module datapath(
- input wire clk,
- input wire reset,
- input  [31:0] inst,
- input wire [31:0] PC,
- input wire [31:0] register,
- input wire mem_read,
- input wire mem_write,
- input wire [31:0] mem_data,
- input wire [31:0] mem_addr,
- output wire [31:0] alu_out,
- output wire [31:0] next_PC,
- output wire [31:0] write_data,
- output wire [4:0] write_reg,
- output wire mem_to_reg
+module riscvtop(
+  input clk,
+  input reset,
+  output reg [31:0] register,
+  output reg [31:0] pc,
+  output reg [31:0] instruction,
+  output reg [31:0] result,
+  output reg [31:0] write_data,
+  output reg [4:0] write_reg,
+  output reg mem_write,
+  output reg mem_read
 );
 
-// Declare all of the necessary wires and registers
-wire [31:0] pc_plus_4, imm, rs1, rs2, alu_op1, alu_op2,
-           mem_read_data, branch_target;
-reg [4:0] read_reg_1, read_reg_2;
-reg [31:0] PC_reg, inst_mem_out, reg_file_out_1, reg_file_out_2, reg_file[31:0];
-reg [5:0] control, control_next;
-reg [4:0] write_reg_temp;
+wire [31:0] address;
+wire [31:0] pc_out;
+wire [31:0] read_reg_1;
+wire [31:0] read_reg_2;
+wire [4:0] reg_write;
+wire [6:0] op;
+wire [2:0] funct3;
+wire [6:0] funct7;
+wire [31:0] sign_extended_immediate;
 
-// PC register
-always @(posedge clk) begin
- if (reset) begin
-   PC_reg <= 32'h00000000;
- end
- else
-   if (next_PC) begin
-   PC_reg <= next_PC;
- end
+instructionmem instruction_memory_inst(.clk(clk), .address(pc), .instruction(instruction));
+pc program_counter_inst(.clk(clk), .next_pc(next_pc), .pc(pc));
+controlunit control_unit_inst(.opcode(opcode), .funct3(funct3), .funct7(funct7), .mem_read(mem_read), .mem_write(mem_write), .write_reg(write_reg), .register_write(register_write), .alu_src(alu_src), .alu_op(alu_op));
+register register_file_inst(.clk(clk), .write_data(write_data), .write_reg(write_reg), .read_reg_1(rs1), .read_reg_2(rs2), .write_enable(register_write), .read_data_1(register[rs1]), .read_data_2(register[rs2]), .write_address(write_reg));
+datamem data_memory_inst(.clk(clk), .address(alu_result), .write_data(register[rd]), .mem_write(mem_write), .mem_read(mem_read), .read_data(memory_result));
+
+alu alu_inst(.funct3(funct3), .funct7(funct7), .input_1(rs1), .input_2(rs2), .immediate(sign_extended_immediate), .op(alu_op), .result(alu_result));
+
+// ...
+
+always@(posedge clk) begin
+  if(reset) begin
+    pc <= 0;
+  end else begin
+    pc <= next_pc;
+  end
 end
-
-pc pc_reg_module(clk, next_pc, pc);
- instructionmem inst_mem_module(address, instruction);
- assign next_pc = instruction;
-
-
-// Instruction memory
-//always @(posedge clk) begin
-// if (reset) begin
-//   inst_mem_out <= 32'h00000000;
-// end else if (mem_read) begin
-//   inst_mem_out <= mem_data;
-// end
-//end
-
- register reg_file_module(
-  read_reg_1,
-  read_reg_2,
-  write_reg,
-  write_data,
-  reg_data_1,
-  reg_data_2,
-  reg_write,
-  clk,
-  reset
-  );
-
-// Control unit
-always @(posedge clk) begin
- if (reset) begin
-   control <= 5'b00000;
- end else 
- begin
-   control <= control_next;
- end
-end
-
-// ALU
-alu alu_module(
- alu_op1,
- alu_op2,
- control[3:0],
- alu_out,
- zero_flag
- );
-
-// Next PC
-assign next_PC = pc_plus_4;
-assign write_reg = write_reg_temp;
 
 endmodule
