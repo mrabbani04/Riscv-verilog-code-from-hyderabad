@@ -1,0 +1,36 @@
+
+
+module pc(
+// input clk,
+// input [31:0] next_pc,
+// output reg [31:0] pc
+//);
+
+//always@(posedge clk) begin
+// pc <= next_pc;
+//end
+
+//endmodule
+input clk,
+   
+//    input branch,
+//    input [31:0] branch_address,
+    input [31:0] next_address,
+    output  [31:0] pc_out
+);
+   reg [31:0] pc;
+
+    always @(posedge clk) begin
+        if (clk) begin
+            pc <= 0;
+//        end else if (branch) begin
+//            pc <= branch_address;
+        end else begin
+            pc <= next_address;
+        end
+    end
+
+    assign pc_out = next_address;
+    
+endmodule
+   
