@@ -1,0 +1,86 @@
+module datapath(
+ input wire clk,
+ input wire reset,
+ input  [31:0] inst,
+ input wire [31:0] PC,
+ input wire [31:0] register,
+ input wire mem_read,
+ input wire mem_write,
+ input wire [31:0] mem_data,
+ input wire [31:0] mem_addr,
+ output wire [31:0] alu_out,
+ output wire [31:0] next_PC,
+ output wire [31:0] write_data,
+ output wire [4:0] write_reg,
+ output wire mem_to_reg
+);
+
+// Declare all of the necessary wires and registers
+wire [31:0] pc_plus_4, imm, rs1, rs2, alu_op1, alu_op2,
+           mem_read_data, branch_target;
+reg [4:0] read_reg_1, read_reg_2;
+reg [31:0] PC_reg, inst_mem_out, reg_file_out_1, reg_file_out_2, reg_file[31:0];
+reg [5:0] control, control_next;
+reg [4:0] write_reg_temp;
+
+// PC register
+always @(posedge clk) begin
+ if (reset) begin
+   PC_reg <= 32'h00000000;
+ end
+ else
+   if (next_PC) begin
+   PC_reg <= next_PC;
+ end
+end
+
+pc pc_reg_module(clk, next_pc, pc);
+ instructionmem inst_mem_module(address, instruction);
+ assign next_pc = instruction;
+
+
+// Instruction memory
+//always @(posedge clk) begin
+// if (reset) begin
+//   inst_mem_out <= 32'h00000000;
+// end else if (mem_read) begin
+//   inst_mem_out <= mem_data;
+// end
+//end
+
+ register reg_file_module(
+  read_reg_1,
+  read_reg_2,
+  write_reg,
+  write_data,
+  reg_data_1,
+  reg_data_2,
+  reg_write,
+  clk,
+  reset
+  );
+
+// Control unit
+always @(posedge clk) begin
+ if (reset) begin
+   control <= 5'b00000;
+ end else 
+ begin
+   control <= control_next;
+ end
+end
+
+// ALU
+alu alu_module(
+ alu_op1,
+ alu_op2,
+ control[3:0],
+ alu_out,
+ zero_flag
+ );
+
+// Next PC
+assign next_PC = pc_plus_4;
+assign write_reg = write_reg_temp;
+
+endmodule
